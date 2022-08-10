@@ -1,1 +1,4 @@
 venv/
+record.log
+__pycache__/
+
