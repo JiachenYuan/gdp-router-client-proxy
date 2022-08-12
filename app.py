@@ -35,8 +35,7 @@ def prepare_register_packet(local_ip, switch_ip):
                     UDP(sport=31415, dport=31415)/ \
                         GDP(data_len=32, src_gdpname=GdpName)/ \
                             socket.inet_aton(local_ip)
-    temp = packet.show(dump=True)
-    print(temp)
+
     # print(socket.inet_ntoa(packet[GDP].payload.load))
 
     sendp(packet)
