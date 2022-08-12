@@ -50,12 +50,12 @@ def prepare_register_packet(local_ip, switch_ip):
 
 
 def register_proxy(switch_ip):
-    app.logger.info("Sending initial binding registration")
+    print("Sending initial binding registration")
     # todo: register it self by constructing and sending a Gdp message to the switch it binds 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(('8.8.8.8', 1))  # connect() for UDP doesn't send packets
     local_ip_address = s.getsockname()[0]
-    app.logger.info("I am a client-side proxy of GDP switch, my IP = " + local_ip_address)
+    print("I am a client-side proxy of GDP switch, my IP = " + local_ip_address)
 
     prepare_register_packet(local_ip_address, switch_ip)
 
@@ -67,7 +67,7 @@ def create_app(switch_ip):
     app.logger.setLevel(logging.INFO)
     app.config['switch_ip'] = switch_ip
 
-    app.logger.info("Passed in switch ip = " + app.config['switch_ip'])
+    print("Passed in switch ip = " + app.config['switch_ip'])
 
     register_proxy(switch_ip)
     
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     app = create_app(switch_ip)
 
-    app.run(debug=True)
+    app.run(debug=False)
 
 
 
