@@ -2,6 +2,8 @@ import logging
 from flask import Flask
 from scapy.all import *
 import socket
+from datetime import datetime
+import hashlib
 
 
 
@@ -20,16 +22,24 @@ class GDP(Packet):
 
 
 def prepare_register_packet(local_ip, switch_ip):
+    curr_time = datetime.now()
+    string_to_hash = str(curr_time) + str(local_ip)
+    GdpName = hashlib.sha256(string_to_hash.encode('utf-8')).digest()
+    GdpName = int.from_bytes(GdpName, "big")
+    print(GdpName)
+
+
+
     packet = Ether(dst = 'ff:ff:ff:ff:ff:ff') / \
                 IP(src=local_ip, dst=switch_ip)/ \
                     UDP(sport=31415, dport=31415)/ \
-                        GDP(data_len=32)/ \
+                        GDP(data_len=32, src_gdpname=GdpName)/ \
                             socket.inet_aton(local_ip)
-    # temp = packet.show(dump=True)
-    # print(temp)
+    temp = packet.show(dump=True)
+    print(temp)
     # print(socket.inet_ntoa(packet[GDP].payload.load))
 
-    sendp(packet)
+    send(packet)
     
     return
 
