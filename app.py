@@ -27,7 +27,7 @@ def prepare_register_packet(local_ip, switch_ip):
     GdpName = hashlib.sha256(string_to_hash.encode('utf-8'))
     print(GdpName.hexdigest())
     GdpName = GdpName.digest()
-    GdpName = int.from_bytes(GdpName, "little")
+    GdpName = int.from_bytes(GdpName, "big")
     # print(GdpName)
 
 
