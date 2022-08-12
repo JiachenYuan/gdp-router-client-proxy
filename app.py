@@ -39,7 +39,7 @@ def prepare_register_packet(local_ip, switch_ip):
     print(temp)
     # print(socket.inet_ntoa(packet[GDP].payload.load))
 
-    send(packet)
+    sendp(packet)
     
     return
 
