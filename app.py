@@ -24,10 +24,11 @@ class GDP(Packet):
 def prepare_register_packet(local_ip, switch_ip):
     curr_time = datetime.now()
     string_to_hash = str(curr_time) + str(local_ip)
-    GdpName = hashlib.sha256(string_to_hash.encode('utf-8')).digest()
-    print(GdpName.decode())
+    GdpName = hashlib.sha256(string_to_hash.encode('utf-8'))
+    print(GdpName.hexdigest())
+    GdpName = GdpName.digest()
     GdpName = int.from_bytes(GdpName, "little")
-    print(GdpName)
+    # print(GdpName)
 
 
 
