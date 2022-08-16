@@ -4,6 +4,7 @@ from scapy.all import *
 import socket
 from datetime import datetime
 import hashlib
+import protobuf.GdpMsg_pb2
 
 
 
