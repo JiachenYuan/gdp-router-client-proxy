@@ -8,7 +8,7 @@ import protobuf.GdpMsg_pb2
 
 
 
-
+GdpName = None
 app = Flask(__name__)
 import routes
 
@@ -22,21 +22,11 @@ class GDP(Packet):
     ]
 
 
-def prepare_register_packet(local_ip, switch_ip):
-    curr_time = datetime.now()
-    string_to_hash = str(curr_time) + str(local_ip)
-    GdpName = hashlib.sha256(string_to_hash.encode('utf-8'))
-    print(GdpName.hexdigest())
-    GdpName = GdpName.digest()
-    GdpName = int.from_bytes(GdpName, "big")
-    # print(GdpName)
-
-
-
+def send_register_packet(local_ip, switch_ip, GdpName):
     packet = Ether(dst = 'ff:ff:ff:ff:ff:ff') / \
                 IP(src=local_ip, dst=switch_ip)/ \
                     UDP(sport=31415, dport=31415)/ \
-                        GDP(data_len=32, src_gdpname=GdpName)/ \
+                        GDP(data_len=32, src_gdpname=GdpName, action=1)/ \
                             socket.inet_aton(local_ip)
 
     # print(socket.inet_ntoa(packet[GDP].payload.load))
@@ -56,11 +46,22 @@ def register_proxy(switch_ip):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(('8.8.8.8', 1))  # connect() for UDP doesn't send packets
     local_ip_address = s.getsockname()[0]
-    print("I am a client-side proxy of GDP switch, my IP = " + local_ip_address)
+    print("I am a client-side proxy of GDP switch, my IP = {}".format(local_ip_address))
 
-    prepare_register_packet(local_ip_address, switch_ip)
+    curr_time = datetime.now()
+    string_to_hash = str(curr_time) + str(app.config['switch_ip'])
+    GdpName = hashlib.sha256(string_to_hash.encode('utf-8'))
+    # We need human-readable hex string for GdpName instead of bytes 
+    to_return = GdpName.hexdigest()
+    GdpName_in_byte = GdpName.digest()
 
-    return
+    GdpName_in_byte = int.from_bytes(GdpName_in_byte, "big")
+
+    print("My GdpName in 64 hex string is = {}".format(to_return))
+
+    send_register_packet(local_ip_address, switch_ip, GdpName_in_byte)
+
+    return to_return
 
 
 def create_app(switch_ip):
@@ -70,8 +71,8 @@ def create_app(switch_ip):
 
     print("Passed in switch ip = " + app.config['switch_ip'])
 
-    register_proxy(switch_ip)
-    
+    GdpName = register_proxy(switch_ip)
+    app.config['GdpName'] = GdpName
     return app
 
 

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+message GdpMsg {
+    int64 packet_no = 1;
+    int64 num_packet = 2;
+    string content = 3;
+    string protocol_type = 4;
+}
