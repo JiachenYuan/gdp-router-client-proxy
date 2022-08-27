@@ -24,7 +24,7 @@ bind_layers(UDP, GDP, dport=31415)
 DATA_ASSEMBLER_MUTEX = threading.Lock()
 
 class DataAssembler():
-    def __init__(self, local_gdpname):
+    def __init__(self, local_gdpname, local_ip):
         # map from series uuid to a list of received packet data for this series
         self.series_packets = dict()
         # map from series uuid to the number of packets should be received to complete this series
@@ -33,6 +33,7 @@ class DataAssembler():
         self.message_queue = queue.Queue()
 
         self.local_gdpname = local_gdpname
+        self.local_ip = local_ip
     
     def process_packet(self, packet):
         '''
@@ -41,8 +42,12 @@ class DataAssembler():
         '''
         if not packet.haslayer(GDP):
             return
+        ip_layer = packet.getlayer(IP)
+        # Checking if packet ip destination is current client proxy
+        if ip_layer.dst != self.local_ip:
+            return
         gdp_layer = packet.getlayer(GDP)
-        # Checking if packet destination is current client proxy
+        # Checking if packet gdpname destination is current client proxy
         if gdp_layer.dst_gdpname != self.local_gdpname:
             return
         packet_num = gdp_layer.packet_no
@@ -184,7 +189,7 @@ if __name__ == "__main__":
     register_proxy(local_ip, switch_ip, local_gdpname, switch_gdpname)
 
     # start receiving thread
-    data_assembler = DataAssembler(local_gdpname)
+    data_assembler = DataAssembler(local_gdpname, local_ip)
     t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
     t.start()
 
