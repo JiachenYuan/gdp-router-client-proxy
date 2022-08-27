@@ -160,14 +160,28 @@ def send_packets(local_ip, switch_ip, src_GdpName, dst_GdpName, serialized_strin
 
 
 if __name__ == "__main__":
-    switch_ip = "128.32.37.42" 
-    dst_gdpname = int.from_bytes(bytes.fromhex("0323e08128068a27e3217460b4bcd78db9127dcb745fd106c263e957f8d00488"), "big")
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Just an example", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("switch_ip", help="switch ip that this proxy is binding to")
+    parser.add_argument("switch_gdpname", help="switch gdpname")
+    parser.add_argument("to_send_packets", help="1 to send and listen, 0 to just listen")
+    parser.add_argument("dst_gdpname", help="destination gdpname if to_send_packets == '1'")
+
+    args = parser.parse_args()
+    # print(args.switch_ip, type(args.switch_ip))
+    # print(args.switch_gdpname, type(args.switch_gdpname))
+    # print(args.to_send_packets, type(args.to_send_packets))
+
+
+    switch_ip = args.switch_ip
+    switch_gdpname = int.from_bytes(bytes.fromhex(args.switch_gdpname), "big")
     data_assembler = None
 
     # register current proxy to a switch
     local_ip = get_local_ip()
     local_gdpname = generate_gdpname(local_ip)
-    register_proxy(local_ip, switch_ip, local_gdpname, dst_gdpname)
+    register_proxy(local_ip, switch_ip, local_gdpname, switch_gdpname)
 
     # start receiving thread
     data_assembler = DataAssembler(local_gdpname)
@@ -181,9 +195,10 @@ if __name__ == "__main__":
         while True:
             time.sleep(randint(0,5))
             bytes_message = os.urandom(20)
-            send_packets(local_ip, switch_ip, local_gdpname, dst_gdpname, bytes_message)
-    heartbeat_thread = threading.Thread(target=heartbeat)
-    heartbeat_thread.start()
+            send_packets(local_ip, switch_ip, local_gdpname, args.dst_gdpname, bytes_message)
+    if args.to_send_packets == "1":
+        heartbeat_thread = threading.Thread(target=heartbeat)
+        heartbeat_thread.start()
 
     while True:
         uuid_and_message = data_assembler.message_queue.get()
