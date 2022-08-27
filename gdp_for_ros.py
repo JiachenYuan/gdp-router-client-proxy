@@ -1,6 +1,10 @@
+import queue
+from random import randint
 from scapy.all import *
 import threading
 from utils import *
+
+
 
 class GDP(Packet):
     name = "GDP"
@@ -25,12 +29,12 @@ class DataAssembler():
         self.series_packets = dict()
         # map from series uuid to the number of packets should be received to complete this series
         self.series_packets_countdown = dict()
-        # map from series uuid to assembled payload 
-        self.series_payload = dict()
+        # synchronized queue for assembled message
+        self.message_queue = queue.Queue()
 
         self.local_gdpname = local_gdpname
     
-    def put_series_data(self, packet):
+    def process_packet(self, packet):
         '''
         Extract data from gdp_packet and put in series_packets.
         If all packets are received for this series, move complete payload to series_payload.
@@ -64,7 +68,7 @@ class DataAssembler():
         if self.series_packets_countdown[series_uuid] == 0:
             data_list = self.series_packets[series_uuid]
             assembled_data = reduce(lambda x, y: x+y, data_list)
-            self.series_payload[series_uuid] = assembled_data
+            self.message_queue.put(series_uuid, assembled_data)
             self.series_packets.pop(series_uuid)
             self.series_packets_countdown.pop(series_uuid)
 
@@ -157,7 +161,7 @@ def send_packets(local_ip, switch_ip, src_GdpName, dst_GdpName, serialized_strin
 
 if __name__ == "__main__":
     switch_ip = "128.32.37.42" 
-    dst_gdpname = int.from_bytes(bytes.fromhex("76fbfda605f68bc784cbf8c1b50a5224eadf1a07efbf2cdbac340fcc57adffab"), "big")
+    dst_gdpname = int.from_bytes(bytes.fromhex("0323e08128068a27e3217460b4bcd78db9127dcb745fd106c263e957f8d00488"), "big")
     data_assembler = None
 
     # register current proxy to a switch
@@ -167,22 +171,27 @@ if __name__ == "__main__":
 
     # start receiving thread
     data_assembler = DataAssembler(local_gdpname)
-    
-    t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.put_series_data(packet),))
+    t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
     t.start()
 
     time.sleep(0.4)
-    # send some data to the echo switch
-    bytes_message = os.urandom(20)
-    send_packets(local_ip, switch_ip, local_gdpname, dst_gdpname, bytes_message)
+
+
+    def heartbeat():
+        while True:
+            time.sleep(randint(0,5))
+            bytes_message = os.urandom(20)
+            send_packets(local_ip, switch_ip, local_gdpname, dst_gdpname, bytes_message)
+    heartbeat_thread = threading.Thread(target=heartbeat)
+    heartbeat_thread.start()
 
     while True:
-        t.join(5)
-        if t.is_alive():
-            print(data_assembler.series_payload)
-        else:
-            print("This thread exited unexpectedly")
-            break
+        uuid_and_message = data_assembler.message_queue.get()
+        print(uuid_and_message[1])
+
+    
+
+
 
 
 

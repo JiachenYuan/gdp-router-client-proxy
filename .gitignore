@@ -1,4 +1,5 @@
 venv/
 record.log
 __pycache__/
+protobuf/
 

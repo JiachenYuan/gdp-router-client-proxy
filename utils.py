@@ -47,12 +47,5 @@ def generate_uuid():
     uuid_obj = uuid4()
     uuid_bytes = uuid_obj.bytes
     uuid_int = int.from_bytes(uuid_bytes, 'big')
-    print(uuid_int.bit_length())
-
-    if uuid_int.bit_length() != 128:
-        print("Not 128 bit uuid integer, regenrating...")
-        return generate_uuid()
-
-    print("number of bytes in uuid is {}".format(len(uuid_bytes)))
     print("gaenerated uuid is {}".format(uuid_obj.hex))
     return uuid_int
