@@ -68,7 +68,7 @@ class DataAssembler():
         if self.series_packets_countdown[series_uuid] == 0:
             data_list = self.series_packets[series_uuid]
             assembled_data = reduce(lambda x, y: x+y, data_list)
-            self.message_queue.put(series_uuid, assembled_data)
+            self.message_queue.put((series_uuid, assembled_data))
             self.series_packets.pop(series_uuid)
             self.series_packets_countdown.pop(series_uuid)
 
@@ -191,11 +191,12 @@ if __name__ == "__main__":
     time.sleep(0.4)
 
 
+    dst_gdpname = int.from_bytes(bytes.fromhex(args.dst_gdpname), "big")
     def heartbeat():
         while True:
             time.sleep(randint(0,5))
             bytes_message = os.urandom(20)
-            send_packets(local_ip, switch_ip, local_gdpname, args.dst_gdpname, bytes_message)
+            send_packets(local_ip, switch_ip, local_gdpname, dst_gdpname, bytes_message)
     if args.to_send_packets == "1":
         heartbeat_thread = threading.Thread(target=heartbeat)
         heartbeat_thread.start()
