@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     while True:
         uuid_and_message = data_assembler.message_queue.get()
-        print(uuid_and_message[1])
+        print(uuid_and_message)
 
     
 
