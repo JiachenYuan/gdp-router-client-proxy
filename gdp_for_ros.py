@@ -46,7 +46,7 @@ class DataAssembler():
         ip_layer = packet.getlayer(IP)
         # Checking if packet ip destination is current client proxy
         if ip_layer.dst != self.local_ip or ip_layer.src != self.switch_ip:
-            print("Destination is not me, ignoring this packet")
+            print("Packet not from switch, ignoring..")
             return
         gdp_layer = packet.getlayer(GDP)
         # Checking if packet gdpname destination is current client proxy
