@@ -1,3 +1,4 @@
+import json
 import queue
 from random import randint
 from scapy.all import *
@@ -15,7 +16,7 @@ class GDP(Packet):
         IntField("num_packets", 1), # 4
         IntField("packet_no", 1), # 4
         ShortField("data_len", 0), # 2
-        ByteField("action", 1), # 1
+        ByteField("action", 1), # 1        # 5 means advertise topic, 6 means topic message push
         ByteField("ttl", 64) # 1
     ]
 
@@ -104,9 +105,82 @@ def register_proxy(local_ip, switch_ip, local_GdpName, dst_GdpName):
                     UDP(sport=31415, dport=31415)/ \
                         GDP(data_len=4, src_gdpname=local_GdpName, dst_gdpname=dst_GdpName, action=1,uuid=0, packet_no=1, num_packets=1 )/\
                              payload
-    a = packet.show(dump=True)
-    print(a)
+    
     sendp(packet)
+
+
+
+def advertise_topic_to_gdp(topic_name, is_by_pub, local_ip, local_gdpname, switch_ip):
+    '''
+    Advertise a topic to gdp. If it is called by a publisher, also register current gdp_client as topic publisher. 
+    Otherwise, register as subscriber 
+
+    Returns an integer representation of this topic's gdpname. Shared by the entire GDP
+    '''
+    print("The following is generated gdpname for topic={}".format(topic_name))
+    topic_gdpname = generate_gdpname(topic_name + local_ip)
+    
+    
+    payload = json.dumps(
+        {
+            'topic_name': topic_name,
+            'topic_gdpname': list(topic_gdpname.to_bytes(32, 'big')),
+            'is_pub': '1' if is_by_pub else '0'
+        }
+    ).encode('utf-8')
+
+    packet = Ether(dst = 'ff:ff:ff:ff:ff:ff') / \
+                IP(src=local_ip, dst=switch_ip)/ \
+                    UDP(sport=31415, dport=31415)/ \
+                        GDP(data_len=len(payload), src_gdpname=local_gdpname, dst_gdpname=0, action=5,uuid=0, packet_no=1, num_packets=1 )/\
+                             payload
+    sendp(packet)
+    return topic_gdpname
+
+
+
+def connect_self_to_topic(topic_gdpname, is_pub, local_ip, local_gdpname, switch_ip):
+    '''
+    Add current gdp client to the remote topic
+    '''
+    # Convert gdpname from hex string to int if input gdpname is in hex string instead of integer type
+    if type(topic_gdpname) == str:
+        topic_gdpname = gdpname_hex_to_int(topic_gdpname)
+
+    payload = json.dumps(
+        {
+            'topic_name': "__",
+            'topic_gdpname': list(topic_gdpname.to_bytes(32, 'big')),
+            'is_pub': '1' if is_pub else '0'
+        }
+    ).encode('utf-8')
+
+    packet = Ether(dst = 'ff:ff:ff:ff:ff:ff') / \
+                IP(src=local_ip, dst=switch_ip)/ \
+                    UDP(sport=31415, dport=31415)/ \
+                        GDP(data_len=len(payload), src_gdpname=local_gdpname, dst_gdpname=0, action=5,uuid=0, packet_no=1, num_packets=1 )/\
+                             payload
+    sendp(packet)
+
+    
+
+def push_message_to_remote_topic(topic_name, topic_gdpname_str, local_ip, local_gdpname, switch_ip, message):
+    '''
+    Send the message to the specified remote topic on the GDP
+    '''
+    # Convert gdpname from hex string to int if input gdpname is in hex string instead of integer type
+    if type(topic_gdpname_str) == str:
+        topic_gdpname = gdpname_hex_to_int(topic_gdpname)
+
+    payload = json.dumps({
+        'topic_name': topic_name,
+        'topic_gdpname': topic_gdpname_str,
+        'message': message
+    })
+    
+    send_packets(local_ip, switch_ip, local_gdpname, topic_gdpname, payload, action_no=6)
+
+
 
 
 def start_sniffing(for_each):
@@ -116,38 +190,20 @@ def start_sniffing(for_each):
     '''
     sniff(prn=for_each)
 
-# def start_listening(switch_ip):
-#     '''
-#     Listen for packets coming from switch_ip, 
-#     assmeble the packets according to series uuid, 
-#     and finally store the data in a DataAssembler
-#     '''
-#     global data_assembler
-#     data_assembler = DataAssembler()
-    
-#     t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.put_series_data(packet),))
-#     t.start()
-
-#     while True:
-#         t.join(5)
-#         if t.is_alive():
-#             print(data_assembler.series_payload)
-#         else:
-#             print("This thread exited unexpectedly")
-#             break
 
 
-def send_packets(local_ip, switch_ip, src_GdpName, dst_GdpName, serialized_string):
+def send_packets(local_ip, switch_ip, src_GdpName, dst_GdpName, serialized_string, action_no=3):
     '''
     Dissect message and send the packets one by one
     '''
     # dissect raw data if needed
     max_payload_size_per_packet = 500
     chunks = [serialized_string[i: i+max_payload_size_per_packet] for i in range(0, len(serialized_string), max_payload_size_per_packet)]
-    print(chunks)
+    
     series_uuid = generate_uuid()
     num_packets = len(chunks)
-    print(num_packets)   
+    # print(num_packets)   
+    
     # packets need to be sent
     packet_list = []
 
@@ -155,15 +211,23 @@ def send_packets(local_ip, switch_ip, src_GdpName, dst_GdpName, serialized_strin
         chunk = chunks[i]
         packet_no = i + 1
         packet = Ether(dst = 'ff:ff:ff:ff:ff:ff') / \
-                IP(src=local_ip, dst=switch_ip)/ \
-                UDP(sport=31415, dport=31415)/ \
-                GDP(src_gdpname=src_GdpName, dst_gdpname=dst_GdpName, action=3, data_len=len(chunk), uuid=series_uuid, packet_no=packet_no, num_packets=num_packets)/ \
-                chunk
+                    IP(src=local_ip, dst=switch_ip)/ \
+                        UDP(sport=31415, dport=31415)/ \
+                            GDP(
+                                src_gdpname=src_GdpName, 
+                                dst_gdpname=dst_GdpName, 
+                                action=action_no, 
+                                data_len=len(chunk), 
+                                uuid=series_uuid, 
+                                packet_no=packet_no, 
+                                num_packets=num_packets
+                                )/ \
+                                chunk
         packet_list.append(packet)
 
     # send the packets one by one
     for i in range(len(packet_list)):
-        sendp(packet_list[i])
+        sendp(packet_list[i], verbose=False)
 
 
 if __name__ == "__main__":
@@ -189,28 +253,29 @@ if __name__ == "__main__":
     local_ip = get_local_ip()
     local_gdpname = generate_gdpname(local_ip)
     register_proxy(local_ip, switch_ip, local_gdpname, switch_gdpname)
+    advertise_topic_to_gdp("helloworld", True, local_ip, local_gdpname, switch_ip)
+    # connect_self_to_topic("6854b99d3749812101f6fbfdd87252f40db616395a2e837e866d59c11700e7da", False, local_ip, local_gdpname, switch_ip)
+    # # start receiving thread
+    # data_assembler = DataAssembler(local_gdpname, local_ip, switch_ip)
+    # t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
+    # t.start()
 
-    # start receiving thread
-    data_assembler = DataAssembler(local_gdpname, local_ip, switch_ip)
-    t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
-    t.start()
-
-    time.sleep(0.4)
+    # time.sleep(0.4)
 
 
-    dst_gdpname = int.from_bytes(bytes.fromhex(args.dst_gdpname), "big")
-    def heartbeat():
-        while True:
-            time.sleep(randint(0,5))
-            bytes_message = os.urandom(20)
-            send_packets(local_ip, switch_ip, local_gdpname, dst_gdpname, bytes_message)
-    if args.to_send_packets == "1":
-        heartbeat_thread = threading.Thread(target=heartbeat)
-        heartbeat_thread.start()
+    # dst_gdpname = int.from_bytes(bytes.fromhex(args.dst_gdpname), "big")
+    # def heartbeat():
+    #     while True:
+    #         time.sleep(randint(0,5))
+    #         bytes_message = os.urandom(20)
+    #         send_packets(local_ip, switch_ip, local_gdpname, dst_gdpname, bytes_message)
+    # if args.to_send_packets == "1":
+    #     heartbeat_thread = threading.Thread(target=heartbeat)
+    #     heartbeat_thread.start()
 
-    while True:
-        uuid_and_message = data_assembler.message_queue.get()
-        print(uuid_and_message)
+    # while True:
+    #     uuid_and_message = data_assembler.message_queue.get()
+    #     print(uuid_and_message)
 
     
 
