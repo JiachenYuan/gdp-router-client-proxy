@@ -76,7 +76,7 @@ class DataAssembler():
         if self.series_packets_countdown[series_uuid] == 0:
             data_list = self.series_packets[series_uuid]
             assembled_data = reduce(lambda x, y: x+y, data_list)
-            self.message_queue.put((series_uuid, assembled_data))
+            self.message_queue.put((series_uuid, hex(gdp_layer.src), assembled_data))
             self.series_packets.pop(series_uuid)
             self.series_packets_countdown.pop(series_uuid)
 
@@ -236,8 +236,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Just an example", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("switch_ip", help="switch ip that this proxy is binding to")
     parser.add_argument("switch_gdpname", help="switch gdpname")
-    parser.add_argument("to_send_packets", help="1 to send and listen, 0 to just listen")
-    parser.add_argument("dst_gdpname", help="destination gdpname if to_send_packets == '1'")
+    # parser.add_argument("to_send_packets", help="1 to send and listen, 0 to just listen")
+    # parser.add_argument("dst_gdpname", help="destination gdpname if to_send_packets == '1'")
 
     args = parser.parse_args()
     # print(args.switch_ip, type(args.switch_ip))
@@ -253,15 +253,19 @@ if __name__ == "__main__":
     local_ip = get_local_ip()
     local_gdpname = generate_gdpname(local_ip)
     register_proxy(local_ip, switch_ip, local_gdpname, switch_gdpname)
-    advertise_topic_to_gdp("helloworld", True, local_ip, local_gdpname, switch_ip)
-    # connect_self_to_topic("6854b99d3749812101f6fbfdd87252f40db616395a2e837e866d59c11700e7da", False, local_ip, local_gdpname, switch_ip)
-    # # start receiving thread
+    topic_gdpname_int = advertise_topic_to_gdp("helloworld", True, local_ip, local_gdpname, switch_ip)
+    
+    print("This topic of helloworld has a gdpname = " + hex(topic_gdpname_int))
+
+    # start receiving thread
     # data_assembler = DataAssembler(local_gdpname, local_ip, switch_ip)
     # t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
     # t.start()
 
     # time.sleep(0.4)
 
+    # ! connect_self_to_topic("6854b99d3749812101f6fbfdd87252f40db616395a2e837e866d59c11700e7da", False, local_ip, local_gdpname, switch_ip)
+    push_message_to_remote_topic("helloworld", hex(topic_gdpname_int), local_ip, local_gdpname, switch_ip, "Greetings, subscribers!")
 
     # dst_gdpname = int.from_bytes(bytes.fromhex(args.dst_gdpname), "big")
     # def heartbeat():
