@@ -4,6 +4,7 @@ from random import randint
 from scapy.all import *
 import threading
 from utils import *
+from sshkeyboard import listen_keyboard
 
 
 
@@ -170,7 +171,7 @@ def push_message_to_remote_topic(topic_name, topic_gdpname_str, local_ip, local_
     '''
     # Convert gdpname from hex string to int if input gdpname is in hex string instead of integer type
     if type(topic_gdpname_str) == str:
-        topic_gdpname = gdpname_hex_to_int(topic_gdpname)
+        topic_gdpname = gdpname_hex_to_int(topic_gdpname_str)
 
     payload = json.dumps({
         'topic_name': topic_name,
@@ -236,8 +237,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Just an example", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("switch_ip", help="switch ip that this proxy is binding to")
     parser.add_argument("switch_gdpname", help="switch gdpname")
-    # parser.add_argument("to_send_packets", help="1 to send and listen, 0 to just listen")
-    # parser.add_argument("dst_gdpname", help="destination gdpname if to_send_packets == '1'")
+    parser.add_argument("is_pub", help="1 to pub, 0 to sub")
+    parser.add_argument("topic_gdpname", help="topic gdpname")
 
     args = parser.parse_args()
     # print(args.switch_ip, type(args.switch_ip))
@@ -253,33 +254,38 @@ if __name__ == "__main__":
     local_ip = get_local_ip()
     local_gdpname = generate_gdpname(local_ip)
     register_proxy(local_ip, switch_ip, local_gdpname, switch_gdpname)
-    topic_gdpname_int = advertise_topic_to_gdp("helloworld", True, local_ip, local_gdpname, switch_ip)
-    
-    print("This topic of helloworld has a gdpname = " + hex(topic_gdpname_int))
+
+    if args.is_pub == '1':
+        topic_gdpname_int = advertise_topic_to_gdp("helloworld", True, local_ip, local_gdpname, switch_ip)
+        print("This topic of helloworld has a gdpname = " + hex(topic_gdpname_int))
+        listen_keyboard(on_press=lambda key: push_message_to_remote_topic("helloworld", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "Greetings, subscribers!"))
+        
+        
 
     # start receiving thread
-    # data_assembler = DataAssembler(local_gdpname, local_ip, switch_ip)
-    # t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
-    # t.start()
+    if args.is_pub == '0':
+        data_assembler = DataAssembler(local_gdpname, local_ip, switch_ip)
+        t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
+        t.start()
 
-    # time.sleep(0.4)
+        # time.sleep(0.4)
 
-    # ! connect_self_to_topic("6854b99d3749812101f6fbfdd87252f40db616395a2e837e866d59c11700e7da", False, local_ip, local_gdpname, switch_ip)
-    push_message_to_remote_topic("helloworld", hex(topic_gdpname_int), local_ip, local_gdpname, switch_ip, "Greetings, subscribers!")
+        connect_self_to_topic(args.topic_gdpname, False, local_ip, local_gdpname, switch_ip)
+    
 
-    # dst_gdpname = int.from_bytes(bytes.fromhex(args.dst_gdpname), "big")
-    # def heartbeat():
-    #     while True:
-    #         time.sleep(randint(0,5))
-    #         bytes_message = os.urandom(20)
-    #         send_packets(local_ip, switch_ip, local_gdpname, dst_gdpname, bytes_message)
-    # if args.to_send_packets == "1":
-    #     heartbeat_thread = threading.Thread(target=heartbeat)
-    #     heartbeat_thread.start()
+        # dst_gdpname = int.from_bytes(bytes.fromhex(args.dst_gdpname), "big")
+        # def heartbeat():
+        #     while True:
+        #         time.sleep(randint(0,5))
+        #         bytes_message = os.urandom(20)
+        #         send_packets(local_ip, switch_ip, local_gdpname, dst_gdpname, bytes_message)
+        # if args.to_send_packets == "1":
+        #     heartbeat_thread = threading.Thread(target=heartbeat)
+        #     heartbeat_thread.start()
 
-    # while True:
-    #     uuid_and_message = data_assembler.message_queue.get()
-    #     print(uuid_and_message)
+        while True:
+            uuid_and_message = data_assembler.message_queue.get()
+            print(uuid_and_message)
 
     
 
