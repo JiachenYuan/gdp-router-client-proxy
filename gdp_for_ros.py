@@ -77,7 +77,7 @@ class DataAssembler():
         if self.series_packets_countdown[series_uuid] == 0:
             data_list = self.series_packets[series_uuid]
             assembled_data = reduce(lambda x, y: x+y, data_list)
-            self.message_queue.put((series_uuid, hex(gdp_layer.src), assembled_data))
+            self.message_queue.put((series_uuid, hex(gdp_layer.src_gdpname), assembled_data))
             self.series_packets.pop(series_uuid)
             self.series_packets_countdown.pop(series_uuid)
 
@@ -285,7 +285,7 @@ if __name__ == "__main__":
 
         while True:
             uuid_and_message = data_assembler.message_queue.get()
-            print(uuid_and_message)
+            print(uuid_and_message, flush=True)
 
     
 
