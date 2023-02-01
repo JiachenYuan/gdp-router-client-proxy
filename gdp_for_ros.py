@@ -180,7 +180,7 @@ def push_message_to_remote_topic(topic_name, topic_gdpname_str, local_ip, local_
     print("A message just got sent. Timestamp ==> " + str(start_time))
     if os.path.isfile("benchmark_output/RTT_1024B.txt"):
         with open("benchmark_output/RTT_1024B.txt", "a") as f:
-            f.write(f">>> {start_time}")
+            f.write(f">>> {start_time}\n")
 
     if type(topic_gdpname_str) == str:
         topic_gdpname = gdpname_hex_to_int(topic_gdpname_str)
@@ -287,13 +287,14 @@ if __name__ == "__main__":
 
             connect_self_to_topic("4545454545454545454545454545454545454545454545454545454545454545", False, local_ip, local_gdpname, switch_ip)
 
-            with open("benchmark_output/RTT_1024B.txt", "a") as f:
-                while True:
-                    uuid_and_message = data_assembler.message_queue.get()
-                    # print(uuid_and_message, flush=True) 
-                    end_time = time.time()
-                    print("received a message at timestamp <== " + str(end_time))
-                    f.write(f"<<< {end_time}")
+            
+            while True:
+                uuid_and_message = data_assembler.message_queue.get()
+                # print(uuid_and_message, flush=True) 
+                end_time = time.time()
+                print("received a message at timestamp <== " + str(end_time))
+                with open("benchmark_output/RTT_1024B.txt", "a") as f:
+                    f.write(f"<<< {end_time}\n")
 
 
         # this time allows for mannual topic advertise from the other node
