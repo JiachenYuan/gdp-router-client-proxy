@@ -178,8 +178,8 @@ def push_message_to_remote_topic(topic_name, topic_gdpname_str, local_ip, local_
     # ! for benchmark purpose
     start_time = time.time()
     print("A message just got sent. Timestamp ==> " + str(start_time))
-    if os.path.isfile("benchmark_output/RTT_1024B.txt"):
-        with open("benchmark_output/RTT_1024B.txt", "a") as f:
+    if os.path.isfile("benchmark_output/RTT_4096B.txt"):
+        with open("benchmark_output/RTT_4096B.txt", "a") as f:
             f.write(f">>> {start_time}\n")
 
     if type(topic_gdpname_str) == str:
@@ -273,7 +273,7 @@ if __name__ == "__main__":
 
         # ! 1/31 should subscribe to an echo topic called helloworld_echo and listens for the reply
         def sender_task():
-            listen_keyboard(on_press=lambda key: push_message_to_remote_topic("helloworld", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "flipflop"*(1024//8)))
+            listen_keyboard(on_press=lambda key: push_message_to_remote_topic("helloworld", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "flipflop"*(4096//8)))
 
         s_t = threading.Thread(target=sender_task, args = ())
         s_t.start()
@@ -293,7 +293,7 @@ if __name__ == "__main__":
                 # print(uuid_and_message, flush=True) 
                 end_time = time.time()
                 print("received a message at timestamp <== " + str(end_time))
-                with open("benchmark_output/RTT_1024B.txt", "a") as f:
+                with open("benchmark_output/RTT_4096B.txt", "a") as f:
                     f.write(f"<<< {end_time}\n")
 
 
@@ -341,7 +341,7 @@ if __name__ == "__main__":
         while True:
             uuid_and_message = data_assembler.message_queue.get()
             # print(uuid_and_message, flush=True)
-            push_message_to_remote_topic("helloworld_echo", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "legolego"*(1024//8))
+            push_message_to_remote_topic("helloworld_echo", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "legolego"*(4096//8))
     
 
 
