@@ -38,6 +38,17 @@ def generate_gdpname(string):
         return int.from_bytes(32 * b'H', "big")
     elif string == "helloworld_echo":
         return int.from_bytes(32 * b"E", "big")
+    else:
+        curr_time = datetime.now()
+        string_to_hash = str(curr_time) + str(string)
+        GdpName = hashlib.sha256(string_to_hash.encode('utf-8'))
+        # We need human-readable hex string for GdpName instead of bytes for display purpose
+        local_gdp_name_hex = GdpName.hexdigest()
+        print(local_gdp_name_hex)
+
+        GdpName_in_bytes = GdpName.digest()
+        GdpName_in_int = int.from_bytes(GdpName_in_bytes, "big")
+        return GdpName_in_int
     # return GdpName_in_int
 
 
