@@ -119,7 +119,8 @@ def advertise_topic_to_gdp(topic_name, is_by_pub, local_ip, local_gdpname, switc
     Returns an integer representation of this topic's gdpname. Shared by the entire GDP
     '''
     print("The following is generated gdpname for topic={}".format(topic_name))
-    topic_gdpname = generate_gdpname(topic_name + local_ip)
+    # topic_gdpname = generate_gdpname(topic_name + local_ip)
+    topic_gdpname = generate_gdpname(topic_name)
     
     
     payload = json.dumps(
@@ -277,7 +278,7 @@ if __name__ == "__main__":
 
             # time.sleep(0.4)
 
-            connect_self_to_topic("helloworld_echo", False, local_ip, local_gdpname, switch_ip)
+            connect_self_to_topic("4545454545454545454545454545454545454545454545454545454545454545", False, local_ip, local_gdpname, switch_ip)
 
             while True:
                 uuid_and_message = data_assembler.message_queue.get()
