@@ -127,6 +127,7 @@ def advertise_topic_to_gdp(topic_name, is_by_pub, local_ip, local_gdpname, switc
         {
             'topic_name': topic_name,
             'topic_gdpname': list(topic_gdpname.to_bytes(32, 'big')),
+            # 'topic_gdpname': list(topic_gdpname),
             'is_pub': '1' if is_by_pub else '0'
         }
     ).encode('utf-8')

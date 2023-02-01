@@ -35,9 +35,9 @@ def generate_gdpname(string):
     # GdpName_in_bytes = GdpName.digest()
     # GdpName_in_int = int.from_bytes(GdpName_in_bytes, "big")
     if string == "helloworld":
-        return 32 * b'H'
+        return int.from_bytes(32 * b'H', "big")
     elif string == "helloworld_echo":
-        return 32 * b"E"
+        return int.from_bytes(32 * b"E", "big")
     # return GdpName_in_int
 
 
