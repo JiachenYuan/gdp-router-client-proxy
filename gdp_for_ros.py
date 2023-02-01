@@ -304,7 +304,7 @@ if __name__ == "__main__":
 
         # ! for benchmarking purposes
         topic_gdpname_int = advertise_topic_to_gdp("helloworld_echo", True, local_ip, local_gdpname, switch_ip)
-        print("This topic of helloworld has a gdpname = " + hex(topic_gdpname_int))
+        print("This topic of helloworld_echo has a gdpname = " + hex(topic_gdpname_int))
 
 
 
