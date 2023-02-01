@@ -170,6 +170,10 @@ def push_message_to_remote_topic(topic_name, topic_gdpname_str, local_ip, local_
     Send the message to the specified remote topic on the GDP
     '''
     # Convert gdpname from hex string to int if input gdpname is in hex string instead of integer type
+
+    # ! for benchmark purpose
+    print("A message just got sent. Timestamp ==> " + str(time.time()))
+
     if type(topic_gdpname_str) == str:
         topic_gdpname = gdpname_hex_to_int(topic_gdpname_str)
 
@@ -258,12 +262,49 @@ if __name__ == "__main__":
     if args.is_pub == '1':
         topic_gdpname_int = advertise_topic_to_gdp("helloworld", True, local_ip, local_gdpname, switch_ip)
         print("This topic of helloworld has a gdpname = " + hex(topic_gdpname_int))
-        listen_keyboard(on_press=lambda key: push_message_to_remote_topic("helloworld", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "Greetings, subscribers!"))
+
+        # ! 1/31 should subscribe to an echo topic called helloworld_echo and listens for the reply
+        def sender_task():
+            listen_keyboard(on_press=lambda key: push_message_to_remote_topic("helloworld", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "flipflop"*(1024//8)))
+
+        s_t = threading.Thread(target=sender_task, args = ())
+        s_t.start()
+
+        def listener_task():
+            data_assembler = DataAssembler(local_gdpname, local_ip, switch_ip)
+            t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
+            t.start()
+
+            # time.sleep(0.4)
+
+            connect_self_to_topic("helloworld_echo", False, local_ip, local_gdpname, switch_ip)
+
+            while True:
+                uuid_and_message = data_assembler.message_queue.get()
+                print(uuid_and_message, flush=True) 
+                print("received a message at timestamp <== " + str(time.time()))
+
+        # this time allows for mannual topic advertise from the other node
+        time.sleep(10)
+        
+        l_t = threading.Thread(target=listener_task, args = ())
+        l_t.start()
+
+        s_t.join()
+        l_t.join()
         
         
 
+
     # start receiving thread
     if args.is_pub == '0':
+
+        # ! for benchmarking purposes
+        topic_gdpname_int = advertise_topic_to_gdp("helloworld_echo", True, local_ip, local_gdpname, switch_ip)
+        print("This topic of helloworld has a gdpname = " + hex(topic_gdpname_int))
+
+
+
         data_assembler = DataAssembler(local_gdpname, local_ip, switch_ip)
         t = threading.Thread(target=start_sniffing, args=(lambda packet: data_assembler.process_packet(packet),))
         t.start()
@@ -286,7 +327,7 @@ if __name__ == "__main__":
         while True:
             uuid_and_message = data_assembler.message_queue.get()
             print(uuid_and_message, flush=True)
-
+            push_message_to_remote_topic("helloworld_echo", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "legolego"*(1024//8))
     
 
 
