@@ -285,7 +285,8 @@ if __name__ == "__main__":
                 print("received a message at timestamp <== " + str(time.time()))
 
         # this time allows for mannual topic advertise from the other node
-        time.sleep(10)
+        time.sleep(20)
+        print("start listening thread for echo node")
         
         l_t = threading.Thread(target=listener_task, args = ())
         l_t.start()
