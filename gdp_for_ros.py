@@ -6,6 +6,8 @@ import threading
 from utils import *
 from sshkeyboard import listen_keyboard
 
+import os
+
 
 
 class GDP(Packet):
@@ -174,7 +176,11 @@ def push_message_to_remote_topic(topic_name, topic_gdpname_str, local_ip, local_
     # Convert gdpname from hex string to int if input gdpname is in hex string instead of integer type
 
     # ! for benchmark purpose
-    print("A message just got sent. Timestamp ==> " + str(time.time()))
+    start_time = time.time()
+    print("A message just got sent. Timestamp ==> " + str(start_time))
+    if os.path.isfile("benchmark_output/RTT_1024B.txt"):
+        with open("benchmark_output/RTT_1024B.txt", "a") as f:
+            f.write(f">>> {start_time}")
 
     if type(topic_gdpname_str) == str:
         topic_gdpname = gdpname_hex_to_int(topic_gdpname_str)
@@ -281,13 +287,17 @@ if __name__ == "__main__":
 
             connect_self_to_topic("4545454545454545454545454545454545454545454545454545454545454545", False, local_ip, local_gdpname, switch_ip)
 
-            while True:
-                uuid_and_message = data_assembler.message_queue.get()
-                print(uuid_and_message, flush=True) 
-                print("received a message at timestamp <== " + str(time.time()))
+            with open("benchmark_output/RTT_1024B.txt", "a") as f:
+                while True:
+                    uuid_and_message = data_assembler.message_queue.get()
+                    # print(uuid_and_message, flush=True) 
+                    end_time = time.time()
+                    print("received a message at timestamp <== " + str(end_time))
+                    f.write(f"<<< {end_time}")
+
 
         # this time allows for mannual topic advertise from the other node
-        time.sleep(20)
+        time.sleep(10)
         print("start listening thread for echo node")
         
         l_t = threading.Thread(target=listener_task, args = ())
@@ -329,7 +339,7 @@ if __name__ == "__main__":
 
         while True:
             uuid_and_message = data_assembler.message_queue.get()
-            print(uuid_and_message, flush=True)
+            # print(uuid_and_message, flush=True)
             push_message_to_remote_topic("helloworld_echo", hex(topic_gdpname_int)[2:], local_ip, local_gdpname, switch_ip, "legolego"*(1024//8))
     
 
